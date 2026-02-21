@@ -25,7 +25,9 @@ const defaultNavItems = [
     { label: "Finance", href: "/dashboard/brand/wallet", icon: Wallet, color: "#f472b6" },
 ];
 
-export function DashboardSidebar({ customNavItems }: { customNavItems?: { label: string; href: string; icon: any; color: string }[] }) {
+import { LucideIcon } from "lucide-react";
+
+export function DashboardSidebar({ customNavItems }: { customNavItems?: { label: string; href: string; icon: LucideIcon; color: string }[] }) {
     const pathname = usePathname();
     const { signOut } = useAuth();
     const navItems = customNavItems || defaultNavItems;

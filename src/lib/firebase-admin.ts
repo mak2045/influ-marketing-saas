@@ -1,11 +1,11 @@
-import { initializeApp, getApps, getApp, cert, ServiceAccount } from "firebase-admin/app";
+import { initializeApp, getApps, getApp, cert, ServiceAccount, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Settings } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 // Initialize Firebase Admin
 let serviceAccount: ServiceAccount;
-let adminApp: any = null;
+let adminApp: App;
 
 try {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -19,7 +19,7 @@ try {
 
     serviceAccount = JSON.parse(cleanedKey);
 
-    console.log("📋 Service Account Project ID:", serviceAccount.project_id);
+    console.log("📋 Service Account Project ID:", serviceAccount.projectId);
 } catch (error) {
     console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
     // Fallback to empty object to prevent immediate crash, but auth will fail
@@ -27,15 +27,11 @@ try {
 }
 
 if (!getApps().length) {
-    try {
-        adminApp = initializeApp({
-            credential: cert(serviceAccount),
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        });
-        console.log("✅ Firebase Admin initialized successfully.");
-    } catch (error) {
-        console.error("❌ Failed to initialize Firebase Admin:", error);
-    }
+    adminApp = initializeApp({
+        credential: cert(serviceAccount),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    });
+    console.log("✅ Firebase Admin initialized successfully.");
 } else {
     adminApp = getApp();
     console.log("✅ Firebase Admin app already initialized.");

@@ -26,9 +26,9 @@ export default function SignUpPage() {
         try {
             await signUp(email, password, displayName, role);
             router.push("/dashboard");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Sign up failed:", error);
-            setError(error.message || "Sign up failed. Please try again.");
+            setError(error instanceof Error ? error.message : "Sign up failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -41,9 +41,9 @@ export default function SignUpPage() {
         try {
             await googleSignIn(role);
             router.push("/dashboard");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Google sign up failed:", error);
-            setError(error.message || "Google sign up failed.");
+            setError(error instanceof Error ? error.message : "Google sign up failed.");
         } finally {
             setLoading(false);
         }

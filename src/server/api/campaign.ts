@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure } from "./trpc";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 
@@ -15,6 +15,25 @@ const campaignSchema = z.object({
     payment_model: z.enum(["FIXED", "PERFORMANCE"]),
     status: z.enum(["DRAFT", "LIVE", "CLOSED"]).default("DRAFT"),
 });
+
+export interface Campaign {
+    id: string;
+    title: string;
+    objective: string;
+    platforms: string[];
+    clip_duration: string;
+    guidelines: string;
+    dos: string;
+    donts: string;
+    brandId: string;
+    budget: number;
+    payment_model: "FIXED" | "PERFORMANCE";
+    status: "DRAFT" | "LIVE" | "CLOSED";
+    createdAt: string;
+    updatedAt: string;
+    brandName?: string;
+    applicationCount?: number;
+}
 
 export const campaignRouter = router({
     // Create Campaign
@@ -61,7 +80,7 @@ export const campaignRouter = router({
                 };
             }));
 
-            return campaigns as any[];
+            return campaigns as Campaign[];
         } catch (error) {
             console.error("Error fetching campaigns:", error);
             return [];
@@ -107,7 +126,7 @@ export const campaignRouter = router({
                     ...data,
                     createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                     updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-                } as any;
+                } as unknown as Campaign;
             });
         }),
 
@@ -125,6 +144,6 @@ export const campaignRouter = router({
                 ...data,
                 createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                 updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-            } as any;
+            } as unknown as Campaign;
         }),
 });

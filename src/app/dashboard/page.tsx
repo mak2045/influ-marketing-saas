@@ -21,7 +21,7 @@ export default function DashboardRedirector() {
         if (role === null) return;
 
         // Redirect based on resolved role
-        if (role === "BRAND") {
+        if (role === "BRAND" || role === "ADMIN") {
             router.replace("/dashboard/brand");
         } else if (role === "CREATOR") {
             router.replace("/dashboard/creator");

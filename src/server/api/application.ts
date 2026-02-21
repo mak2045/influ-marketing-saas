@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure } from "./trpc";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { TRPCError } from "@trpc/server";
@@ -10,6 +10,17 @@ const applicationSchema = z.object({
     notes: z.string().optional(),
     portfolioLinks: z.array(z.string().url()).optional(),
 });
+
+export interface Application {
+    id: string;
+    campaignId: string;
+    creatorId: string;
+    videoUrl: string;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    createdAt: string;
+    notes?: string;
+    portfolioLinks?: string[];
+}
 
 export const applicationRouter = router({
     // Create Application
@@ -64,11 +75,14 @@ export const applicationRouter = router({
                 .orderBy("createdAt", "desc")
                 .get();
 
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                createdAt: doc.data().createdAt?.toDate?.()?.toISOString(),
-            }));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+                } as unknown as Application;
+            });
         }),
 
     // List Applications (for Brand/Campaign)
@@ -81,10 +95,13 @@ export const applicationRouter = router({
                 .orderBy("createdAt", "desc")
                 .get();
 
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                createdAt: doc.data().createdAt?.toDate?.()?.toISOString(),
-            }));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+                } as unknown as Application;
+            });
         }),
 });
