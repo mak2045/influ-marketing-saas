@@ -2,36 +2,44 @@ import { router, publicProcedure } from "./trpc";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 
+export type UserRole = "BRAND" | "CREATOR" | "ADMIN";
+
+interface UserProfile {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    role: UserRole | null;
+    exists: boolean;
+    createdAt?: string;
+}
+
 export const userRouter = router({
     // READ profile on login
-    // If document does NOT exist, auto-create with default role = CREATOR
     getProfile: publicProcedure
         .input(z.object({ uid: z.string() }))
-        .query(async ({ input }) => {
+        .query(async ({ input }): Promise<UserProfile> => {
             try {
+                if (!input.uid) return { uid: "", role: null, exists: false };
+
                 console.log("🔍 getProfile called for uid:", input.uid);
                 const docRef = adminDb.collection("users").doc(input.uid);
                 const doc = await docRef.get();
 
                 if (!doc.exists) {
                     console.warn("⚠️ No Firestore doc for uid:", input.uid);
-                    console.log("📝 Auto-creating profile with default role CREATOR");
-
-                    // Auto-create with default role
-                    const newProfile = {
-                        uid: input.uid,
-                        role: "CREATOR" as const,
-                        createdAt: new Date().toISOString(),
-                    };
-
-                    await docRef.set(newProfile);
-                    console.log("✅ Profile auto-created:", newProfile);
-                    return newProfile;
+                    return { uid: input.uid, role: null, exists: false };
                 }
 
                 const data = doc.data()!;
                 console.log("✅ Profile found:", { uid: doc.id, role: data.role });
-                return { uid: doc.id, ...data };
+                return {
+                    uid: doc.id,
+                    email: data.email,
+                    displayName: data.displayName,
+                    role: data.role as UserRole,
+                    exists: true,
+                    createdAt: data.createdAt,
+                };
             } catch (error) {
                 console.error("❌ Error in getProfile:", error);
                 throw error;
@@ -44,7 +52,7 @@ export const userRouter = router({
             uid: z.string(),
             email: z.string().email(),
             displayName: z.string(),
-            role: z.enum(["BRAND", "CREATOR"]),
+            role: z.enum(["BRAND", "CREATOR", "ADMIN"]),
         }))
         .mutation(async ({ input }) => {
             const { uid, email, displayName, role } = input;
@@ -61,7 +69,7 @@ export const userRouter = router({
             // Explicit Firestore write
             await adminDb.collection("users").doc(uid).set(profileData);
             console.log("✅ Profile created in Firestore");
-            return { success: true, profile: profileData };
+            return { success: true, profile: { ...profileData, exists: true } };
         }),
 
     // UPDATE profile (explicit Firestore write with merge)
@@ -69,7 +77,7 @@ export const userRouter = router({
         .input(z.object({
             uid: z.string(),
             displayName: z.string().optional(),
-            role: z.enum(["BRAND", "CREATOR"]).optional(),
+            role: z.enum(["BRAND", "CREATOR", "ADMIN"]).optional(),
         }))
         .mutation(async ({ input }) => {
             const { uid, ...data } = input;

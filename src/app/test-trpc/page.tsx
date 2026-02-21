@@ -35,7 +35,7 @@ export default function TestPage() {
                             {testQuery.isLoading ? "..." : testQuery.error ? (
                                 <span className="text-red-400">{testQuery.error.message}</span>
                             ) : (
-                                <span className="text-green-400">"{testQuery.data}"</span>
+                                <span className="text-green-400">&quot;{testQuery.data}&quot;</span>
                             )}
                         </div>
                     </div>
@@ -71,7 +71,7 @@ export default function TestPage() {
                 <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm">
                     <p className="font-bold mb-2">Expected Results:</p>
                     <ul className="space-y-1 text-slate-300">
-                        <li>✓ Test: "ok"</li>
+                        <li>✓ Test: &quot;ok&quot;</li>
                         <li>✓ User: {`{ uid: "test-user-123" }`}</li>
                         <li>✓ Both return 200 OK</li>
                     </ul>

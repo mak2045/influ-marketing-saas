@@ -5,8 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Rocket, Zap, Target, DollarSign, FileVideo, FileText, CheckCircle2 } from "lucide-react";
-import { cn } from "@/utils/cn";
+import { ArrowLeft, Rocket, Target, FileVideo, FileText, CheckCircle2 } from "lucide-react";
 
 interface Campaign {
     id: string;

@@ -22,9 +22,9 @@ export default function ForgotPasswordPage() {
         try {
             await sendPasswordReset(email);
             setSuccess(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Password reset failed:", error);
-            setError(error.message || "Failed to send reset email. Please try again.");
+            setError(error instanceof Error ? error.message : "Failed to send reset email. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
                                 <div>
                                     <h3 className="text-xl font-black text-white mb-2">Email Sent!</h3>
                                     <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                                        We've sent a password reset link to <span className="text-white font-bold">{email}</span>.
+                                        We&apos;ve sent a password reset link to <span className="text-white font-bold">{email}</span>.
                                         Check your inbox and follow the instructions.
                                     </p>
                                 </div>

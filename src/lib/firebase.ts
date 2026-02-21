@@ -1,7 +1,7 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,10 +12,24 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Singleton initialization
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+try {
+    // Singleton initialization
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+} catch (error) {
+    console.error("❌ Firebase initialization failed:", error);
+    // Provide fallbacks or re-throw as needed.
+    // We'll let it throw for now so the developer sees the error clearly,
+    // but in a real app we might handle this more gracefully.
+    throw error;
+}
+
+export { auth, db, storage };
 export default app;

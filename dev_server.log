@@ -1,0 +1,32 @@
+
+> ucg-platform@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1281ms
+○ Compiling /_not-found/page ...
+⨯ Error [FirebaseError]: Firebase: Error (auth/invalid-api-key).
+    at module evaluation (src/lib/firebase.ts:18:28)
+    at module evaluation (src/context/AuthContext.tsx:14:1)
+    at module evaluation (src/components/providers.tsx:3:1)
+  16 | const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  17 |
+> 18 | export const auth = getAuth(app);
+     |                            ^
+  19 | export const db = getFirestore(app);
+  20 | export const storage = getStorage(app);
+  21 | export default app; {
+  code: 'auth/invalid-api-key',
+  customData: [Object],
+  digest: '4287176685'
+}
+ GET /not-found-test-page 500 in 10.3s (compile: 8.4s, render: 1893ms)

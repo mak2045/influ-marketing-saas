@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function DashboardRedirector() {
-    const { user, role, loading } = useAuth();
+    const { user, role, loading, debugInfo } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -21,7 +21,7 @@ export default function DashboardRedirector() {
         if (role === null) return;
 
         // Redirect based on resolved role
-        if (role === "BRAND") {
+        if (role === "BRAND" || role === "ADMIN") {
             router.replace("/dashboard/brand");
         } else if (role === "CREATOR") {
             router.replace("/dashboard/creator");
@@ -29,8 +29,9 @@ export default function DashboardRedirector() {
     }, [user, role, loading, router]);
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#020617]">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#020617] text-white gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="text-[10px] uppercase tracking-widest font-black text-slate-500">{debugInfo}</div>
         </div>
     );
 }

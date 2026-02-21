@@ -17,20 +17,22 @@ import { trpc } from "@/utils/trpc";
 
 export interface UserProfile {
     uid: string;
-    role: "BRAND" | "CREATOR";
+    role: "BRAND" | "CREATOR" | "ADMIN";
     displayName?: string;
     email?: string;
+    exists?: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     profile: UserProfile | null;
-    role: "BRAND" | "CREATOR" | null;
+    role: "BRAND" | "CREATOR" | "ADMIN" | null;
     loading: boolean;
+    debugInfo: string;
     signOut: () => Promise<void>;
     signIn: (email: string, pass: string) => Promise<void>;
-    signUp: (email: string, pass: string, displayName: string, role: "BRAND" | "CREATOR") => Promise<void>;
-    googleSignIn: (role: "BRAND" | "CREATOR") => Promise<void>;
+    signUp: (email: string, pass: string, displayName: string, role: "BRAND" | "CREATOR" | "ADMIN") => Promise<void>;
+    googleSignIn: (role: "BRAND" | "CREATOR" | "ADMIN") => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
 }
 
@@ -51,40 +53,52 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
-    const [role, setRole] = useState<"BRAND" | "CREATOR" | null>(null);
+    const [role, setRole] = useState<"BRAND" | "CREATOR" | "ADMIN" | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string>("Initializing...");
     const [authStatus, setAuthStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+    const [profileTimedOut, setProfileTimedOut] = useState(false);
     const router = useRouter();
     const createProfileMutation = trpc.user.createProfile.useMutation();
     const hasLoggedOutRef = useRef(false);
 
-    // TEMP DEBUG FIX - bypass Firestore issues
-    useEffect(() => {
-        if (user) {
-            setAuthStatus("authenticated");
-            setRole("CREATOR"); // Default role for testing
-        } else {
-            setAuthStatus("unauthenticated");
-            setRole(null);
-        }
-    }, [user]);
-
     // 1. Listen for Firebase auth state
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
+        setDebugInfo("Connecting to Auth..."); // eslint-disable-line react-hooks/set-state-in-effect
+        try {
+            const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+                console.log("🔥 Auth State Changed:", firebaseUser?.uid || "Logged out");
+                setUser(firebaseUser);
+                setAuthLoading(false);
+                if (firebaseUser) {
+                    setAuthStatus("authenticated");
+                    setDebugInfo("Authenticated. Syncing profile...");
+                    hasLoggedOutRef.current = false;
+                } else {
+                    setAuthStatus("unauthenticated");
+                    setDebugInfo("Logged out.");
+                    setRole(null);
+                }
+            }, (error) => {
+                console.error("🔥 Auth State Error:", error);
+                setAuthLoading(false);
+                setAuthStatus("unauthenticated");
+                setDebugInfo("Auth Error: " + error.message);
+            });
+            return () => unsubscribe();
+        } catch (error: unknown) {
+            console.error("🔥 Auth Setup Error:", error);
             setAuthLoading(false);
-            if (firebaseUser) {
-                hasLoggedOutRef.current = false;
-            } else {
-                // User logged out — reset role
-                setRole(null);
-            }
-        });
-        return () => unsubscribe();
+            setDebugInfo("Setup Error: " + error.message);
+        }
     }, []);
 
-    // 2. Fetch profile from Firestore via tRPC (uses createProfileMutation from line 57)
-    const { data: profile, isLoading: profileLoading, refetch } = trpc.user.getProfile.useQuery(
+    // 2. Fetch profile from Firestore via tRPC
+    const {
+        data: profile,
+        isLoading: profileLoading,
+        isError: profileError,
+        refetch
+    } = trpc.user.getProfile.useQuery(
         { uid: user?.uid || "" },
         {
             enabled: !!user && authStatus === "authenticated",
@@ -92,6 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             staleTime: Infinity,
         }
     );
+
+    // Profile loading timeout
+    useEffect(() => {
+        if (profileLoading && !!user) {
+            const timer = setTimeout(() => {
+                if (profileLoading) {
+                    console.warn("⌛ Profile fetch timed out");
+                    setProfileTimedOut(true);
+                    setDebugInfo("Profile sync taking longer than expected...");
+                }
+            }, 5000);
+            return () => clearTimeout(timer);
+        } else {
+            setProfileTimedOut(false); // eslint-disable-line react-hooks/set-state-in-effect
+        }
+    }, [profileLoading, user]);
 
     useEffect(() => {
         if (user && profile && profile.exists === false && authStatus === "authenticated") {
@@ -113,19 +143,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             });
         }
-    }, [user, profile, authStatus, refetch]);
+    }, [user, profile, authStatus, refetch, createProfileMutation]);
 
     // 4. Combined loading state
-    const loading = authLoading || (!!user && profileLoading);
+    const loading = authLoading || (!!user && profileLoading && !profileError && !profileTimedOut);
 
     // 5. Set role ONCE when profile loads
     useEffect(() => {
         if (!profileLoading && profile && profile.role) {
-            if (profile.role === "BRAND" || profile.role === "CREATOR") {
-                setRole(profile.role);
+            if (profile.role === "BRAND" || profile.role === "CREATOR" || profile.role === "ADMIN") {
+                setRole(profile.role); // eslint-disable-line react-hooks/set-state-in-effect
+            }
+        } else if (profileError || profileTimedOut) {
+            // Fallback for development/error states to prevent hanging
+            console.error("Profile sync issue (Error or Timeout), using fallback");
+            // Only use fallback if we're clearly authenticated but profile fetch failed
+            if (user && !role) {
+                setRole("CREATOR"); // eslint-disable-line react-hooks/set-state-in-effect
             }
         }
-    }, [profile, profileLoading]);
+    }, [profile, profileLoading, profileError, profileTimedOut, user, role]);
 
     // --- Auth methods ---
 
@@ -141,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signInWithEmailAndPassword(auth, email, pass);
     }, []);
 
-    const signUp = useCallback(async (email: string, pass: string, displayName: string, signUpRole: "BRAND" | "CREATOR") => {
+    const signUp = useCallback(async (email: string, pass: string, displayName: string, signUpRole: "BRAND" | "CREATOR" | "ADMIN") => {
         try {
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
             // Explicit Firestore write via tRPC
@@ -157,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [createProfileMutation]);
 
-    const googleSignIn = useCallback(async (signUpRole: "BRAND" | "CREATOR") => {
+    const googleSignIn = useCallback(async (signUpRole: "BRAND" | "CREATOR" | "ADMIN") => {
         const provider = new GoogleAuthProvider();
         const cred = await signInWithPopup(auth, provider);
 
@@ -184,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile: profile as UserProfile ?? null,
             role,
             loading,
+            debugInfo,
             signOut,
             signIn,
             signUp,
