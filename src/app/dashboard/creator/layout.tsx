@@ -49,8 +49,12 @@ export default function CreatorDashboardLayout({
     // Show loading spinner while waiting
     if (loading || !role) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#020617] text-white gap-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="text-[10px] uppercase tracking-widest font-black text-slate-500">
+                    {/* Displaying loading state from context */}
+                    CONNECTING TO GRID
+                </div>
             </div>
         );
     }
