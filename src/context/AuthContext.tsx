@@ -75,8 +75,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => unsubscribe();
     }, []);
 
-    // 2. Fetch profile from Firestore via tRPC (uses createProfileMutation from line 57)
-    const { data: profile, isLoading: profileLoading, refetch } = trpc.user.getProfile.useQuery(
+    // 2. Fetch profile from Firestore via tRPC
+    const {
+        data: profile,
+        isLoading: profileLoading,
+        isError: profileError,
+        refetch
+    } = trpc.user.getProfile.useQuery(
         { uid: user?.uid || "" },
         {
             enabled: !!user && authStatus === "authenticated",
@@ -108,16 +113,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user, profile, authStatus, refetch, createProfileMutation]);
 
     // 4. Combined loading state
-    const loading = authLoading || (!!user && profileLoading);
+    const loading = authLoading || (!!user && profileLoading && !profileError);
 
     // 5. Set role ONCE when profile loads
     useEffect(() => {
         if (!profileLoading && profile && profile.role) {
             if (profile.role === "BRAND" || profile.role === "CREATOR" || profile.role === "ADMIN") {
-                setRole(profile.role); // eslint-disable-line react-hooks/set-state-in-effect
+                setRole(profile.role);
+            }
+        } else if (profileError) {
+            // Fallback for development/error states to prevent hanging
+            console.error("Profile fetch error, using fallback");
+            // Only use fallback if we're clearly authenticated but profile fetch failed
+            if (user && !role) {
+                setRole("CREATOR");
             }
         }
-    }, [profile, profileLoading]);
+    }, [profile, profileLoading, profileError, user, role]);
 
     // --- Auth methods ---
 

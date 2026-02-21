@@ -20,7 +20,7 @@ export default function CreatorDashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { user, profile, loading } = useAuth();
+    const { user, profile, role, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -33,21 +33,21 @@ export default function CreatorDashboardLayout({
             return;
         }
 
-        // CRITICAL: Wait for profile.role to be loaded before checking access
-        if (!profile || !profile.role) {
+        // CRITICAL: Wait for role to be loaded before checking access
+        if (role === null) {
             // Still loading profile data, wait...
             return;
         }
 
         // Now check if user has correct role
-        if (profile.role !== "CREATOR") {
+        if (role !== "CREATOR") {
             console.warn("Unauthorized access to Creator Dashboard");
             router.replace("/dashboard");
         }
-    }, [user, profile, loading, router]);
+    }, [user, profile, role, loading, router]);
 
     // Show loading spinner while waiting
-    if (loading || !profile || !profile.role) {
+    if (loading || !role) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -56,7 +56,7 @@ export default function CreatorDashboardLayout({
     }
 
     // Guard: Only render if user has correct role
-    if (!user || profile.role !== "CREATOR") return null;
+    if (!user || role !== "CREATOR") return null;
 
     return (
         <div className="flex min-h-screen bg-[#020617] text-slate-200">
